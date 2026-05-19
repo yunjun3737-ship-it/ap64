@@ -904,7 +904,7 @@ DiscoTab:CreateToggle({
                 DiscoSound = Instance.new("Sound")
 
                 -- 정상 작동하는 음악 ID
-                DiscoSound.SoundId = "rbxassetid://9048375035"
+                DiscoSound.SoundId = "rbxassetid://142376088"
 
                 DiscoSound.Looped = true
                 DiscoSound.Volume = DiscoVolume
