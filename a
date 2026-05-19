@@ -784,3 +784,312 @@ RunService.RenderStepped:Connect(function()
     end)
 
 end)
+-------------------------------------------------------------------------------
+-- 배경 조절 탭
+-------------------------------------------------------------------------------
+
+local BackgroundTab = Window:CreateTab("배경조절", 4483362458)
+
+local DiscoMode = false
+local RainbowCharacterBG = false
+local RainbowWorld = false
+local SkySpin = false
+local PulseBrightness = false
+local ColorShift = false
+local DarkModeBG = false
+local WhiteModeBG = false
+local NeonWorld = false
+local FogRainbow = false
+local ClockSpin = false
+local AmbientFlash = false
+
+local DiscoVolume = 3
+
+local OriginalSettings = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogColor = Lighting.FogColor,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows
+}
+
+local DiscoSound = nil
+
+-------------------------------------------------------------------------------
+-- 배경 원상복귀
+-------------------------------------------------------------------------------
+
+BackgroundTab:CreateButton({
+    Name = "배경 원상복귀",
+
+    Callback = function()
+
+        DiscoMode = false
+        RainbowCharacterBG = false
+        RainbowWorld = false
+        SkySpin = false
+        PulseBrightness = false
+        ColorShift = false
+        DarkModeBG = false
+        WhiteModeBG = false
+        NeonWorld = false
+        FogRainbow = false
+        ClockSpin = false
+        AmbientFlash = false
+
+        Lighting.Ambient = OriginalSettings.Ambient
+        Lighting.OutdoorAmbient = OriginalSettings.OutdoorAmbient
+        Lighting.Brightness = OriginalSettings.Brightness
+        Lighting.ClockTime = OriginalSettings.ClockTime
+        Lighting.FogColor = OriginalSettings.FogColor
+        Lighting.FogEnd = OriginalSettings.FogEnd
+        Lighting.GlobalShadows = OriginalSettings.GlobalShadows
+
+        if DiscoSound then
+            DiscoSound:Stop()
+            DiscoSound:Destroy()
+            DiscoSound = nil
+        end
+
+        if LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Color = Color3.new(1,1,1)
+                    v.Material = Enum.Material.Plastic
+                end
+            end
+        end
+
+        for _, v in pairs(workspace:GetDescendants()) do
+            pcall(function()
+                if v:IsA("BasePart") then
+                    v.Material = Enum.Material.Plastic
+                end
+            end)
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 디스코 모드
+-------------------------------------------------------------------------------
+
+BackgroundTab:CreateToggle({
+    Name = "디스코 모드",
+    CurrentValue = false,
+    Flag = "DiscoModeToggle",
+
+    Callback = function(Value)
+
+        DiscoMode = Value
+
+        if Value then
+
+            if not DiscoSound then
+                DiscoSound = Instance.new("Sound")
+                DiscoSound.SoundId = "rbxassetid://1843523203"
+                DiscoSound.Volume = DiscoVolume
+                DiscoSound.Looped = true
+                DiscoSound.Parent = workspace
+                DiscoSound:Play()
+            end
+
+        else
+
+            if DiscoSound then
+                DiscoSound:Stop()
+                DiscoSound:Destroy()
+                DiscoSound = nil
+            end
+
+        end
+    end
+})
+
+BackgroundTab:CreateSlider({
+    Name = "디스코 음량",
+    Range = {0,10},
+    Increment = 1,
+    Suffix = "Volume",
+    CurrentValue = 3,
+    Flag = "DiscoVolumeSlider",
+
+    Callback = function(Value)
+
+        DiscoVolume = Value
+
+        if DiscoSound then
+            DiscoSound.Volume = Value
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 무지개 캐릭터
+-------------------------------------------------------------------------------
+
+BackgroundTab:CreateToggle({
+    Name = "캐릭터 무지개",
+    CurrentValue = false,
+    Flag = "RainbowCharacterBGToggle",
+
+    Callback = function(Value)
+
+        RainbowCharacterBG = Value
+
+        if not Value and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Color = Color3.new(1,1,1)
+                end
+            end
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 추가 기능
+-------------------------------------------------------------------------------
+
+local FeatureNames = {
+    "무지개 월드",
+    "하늘 회전",
+    "밝기 파동",
+    "컬러 시프트",
+    "다크 모드",
+    "화이트 모드",
+    "네온 월드",
+    "무지개 안개",
+    "시간 회전",
+    "조명 플래시"
+}
+
+for _, Name in pairs(FeatureNames) do
+
+    BackgroundTab:CreateToggle({
+        Name = Name,
+        CurrentValue = false,
+        Flag = Name,
+
+        Callback = function(Value)
+
+            if Name == "무지개 월드" then
+                RainbowWorld = Value
+            end
+
+            if Name == "하늘 회전" then
+                SkySpin = Value
+            end
+
+            if Name == "밝기 파동" then
+                PulseBrightness = Value
+            end
+
+            if Name == "컬러 시프트" then
+                ColorShift = Value
+            end
+
+            if Name == "다크 모드" then
+                DarkModeBG = Value
+
+                if Value then
+                    Lighting.ClockTime = 0
+                    Lighting.Brightness = 1
+                end
+            end
+
+            if Name == "화이트 모드" then
+                WhiteModeBG = Value
+
+                if Value then
+                    Lighting.ClockTime = 14
+                    Lighting.Brightness = 5
+                end
+            end
+
+            if Name == "네온 월드" then
+                NeonWorld = Value
+            end
+
+            if Name == "무지개 안개" then
+                FogRainbow = Value
+            end
+
+            if Name == "시간 회전" then
+                ClockSpin = Value
+            end
+
+            if Name == "조명 플래시" then
+                AmbientFlash = Value
+            end
+        end
+    })
+end
+
+-------------------------------------------------------------------------------
+-- 루프 처리
+-------------------------------------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+
+    pcall(function()
+
+        if DiscoMode then
+            Lighting.ClockTime = tick() % 24
+            Lighting.Brightness = math.random(1,5)
+            Lighting.Ambient = Color3.fromHSV(tick()%5/5,1,1)
+            Lighting.OutdoorAmbient = Color3.fromHSV(tick()%5/5,1,1)
+        end
+
+        if RainbowCharacterBG and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Color = Color3.fromHSV(tick()%5/5,1,1)
+                end
+            end
+        end
+
+        if RainbowWorld then
+            Lighting.Ambient = Color3.fromHSV(tick()%5/5,1,1)
+        end
+
+        if SkySpin then
+            Lighting.ClockTime = (tick()*2) % 24
+        end
+
+        if PulseBrightness then
+            Lighting.Brightness = math.abs(math.sin(tick())) * 5
+        end
+
+        if ColorShift then
+            Lighting.OutdoorAmbient = Color3.fromHSV(tick()%10/10,1,1)
+        end
+
+        if NeonWorld then
+            for _, v in pairs(workspace:GetDescendants()) do
+                pcall(function()
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Neon
+                    end
+                end)
+            end
+        end
+
+        if FogRainbow then
+            Lighting.FogColor = Color3.fromHSV(tick()%5/5,1,1)
+            Lighting.FogEnd = 100
+        end
+
+        if ClockSpin then
+            Lighting.ClockTime = (tick()*5) % 24
+        end
+
+        if AmbientFlash then
+            Lighting.Brightness = math.random(1,10)
+        end
+
+    end)
+
+end)
