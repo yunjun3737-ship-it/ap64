@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "파카헙 |  일부 게임에넌 작동안할수도있음",
+   Name = "파카허브 |  일부 게임에선 작동안할수도있음",
    LoadingTitle = "Paca Hub Comprehensive Loading...",
    LoadingSubtitle = "알파카제작",
    ConfigurationSaving = { Enabled = false },
