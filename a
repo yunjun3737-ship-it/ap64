@@ -392,3 +392,395 @@ end)
 -- 자동 동기화 리스너 등록
 Players.PlayerAdded:Connect(function() PlayerDropdown:Refresh(GetPlayerNames(), true) end)
 Players.PlayerRemoving:Connect(function() PlayerDropdown:Refresh(GetPlayerNames(), true) end)
+-------------------------------------------------------------------------------
+-- 무한 3인칭 모드
+-------------------------------------------------------------------------------
+
+local ThirdPersonEnabled = false
+
+PlayerTab:CreateToggle({
+    Name = "무한 3인칭 모드",
+    CurrentValue = false,
+    Flag = "InfiniteThirdPerson",
+
+    Callback = function(Value)
+        ThirdPersonEnabled = Value
+
+        if Value then
+            LocalPlayer.CameraMode = Enum.CameraMode.Classic
+
+            -- 무한 줌 아웃 가능
+            LocalPlayer.CameraMinZoomDistance = 0
+            LocalPlayer.CameraMaxZoomDistance = 999999
+
+        else
+            -- 다시 1인칭 고정
+            LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+
+            LocalPlayer.CameraMinZoomDistance = 0
+            LocalPlayer.CameraMaxZoomDistance = 0
+        end
+    end
+})
+-------------------------------------------------------------------------------
+-- 추가 기능 변수
+-------------------------------------------------------------------------------
+
+local SpinBot = false
+local SpinSpeed = 5
+
+local AutoJump = false
+local RainbowCharacter = false
+local InvisibleCharacter = false
+local HeadSpin = false
+local OrbitSpin = false
+local FakeLag = false
+local AutoSit = false
+local AutoRotate = false
+local MoonGravity = false
+local InfiniteZoom = false
+local CameraShake = false
+local RandomBrightness = false
+local FlashMode = false
+local RainbowLighting = false
+local AntiVoid = false
+local SmallCharacter = false
+local BigCharacter = false
+local FastAnim = false
+local SlowAnim = false
+
+-------------------------------------------------------------------------------
+-- 기능들
+-------------------------------------------------------------------------------
+
+PlayerTab:CreateToggle({
+    Name = "스핀봇",
+    CurrentValue = false,
+    Flag = "SpinBotToggle",
+
+    Callback = function(Value)
+        SpinBot = Value
+    end
+})
+
+PlayerTab:CreateInput({
+    Name = "스핀 속도",
+    PlaceholderText = "기본값: 5",
+    RemoveTextAfterFocusLost = false,
+
+    Callback = function(Text)
+        local num = tonumber(Text)
+
+        if num then
+            SpinSpeed = num
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "자동 점프",
+    CurrentValue = false,
+    Flag = "AutoJumpToggle",
+
+    Callback = function(Value)
+        AutoJump = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "무지개 캐릭터",
+    CurrentValue = false,
+    Flag = "RainbowCharacterToggle",
+
+    Callback = function(Value)
+        RainbowCharacter = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "캐릭터 투명화",
+    CurrentValue = false,
+    Flag = "InvisibleCharacterToggle",
+
+    Callback = function(Value)
+        InvisibleCharacter = Value
+
+        if LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Transparency = Value and 0.5 or 0
+                end
+            end
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "머리 회전",
+    CurrentValue = false,
+    Flag = "HeadSpinToggle",
+
+    Callback = function(Value)
+        HeadSpin = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "궤도 회전",
+    CurrentValue = false,
+    Flag = "OrbitSpinToggle",
+
+    Callback = function(Value)
+        OrbitSpin = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "가짜 렉",
+    CurrentValue = false,
+    Flag = "FakeLagToggle",
+
+    Callback = function(Value)
+        FakeLag = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "자동 앉기",
+    CurrentValue = false,
+    Flag = "AutoSitToggle",
+
+    Callback = function(Value)
+        AutoSit = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "자동 회전",
+    CurrentValue = false,
+    Flag = "AutoRotateToggle",
+
+    Callback = function(Value)
+        AutoRotate = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "달 중력",
+    CurrentValue = false,
+    Flag = "MoonGravityToggle",
+
+    Callback = function(Value)
+        MoonGravity = Value
+
+        if Value then
+            workspace.Gravity = 35
+        else
+            workspace.Gravity = 196.2
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "무한 줌",
+    CurrentValue = false,
+    Flag = "InfiniteZoomToggle",
+
+    Callback = function(Value)
+        InfiniteZoom = Value
+
+        if Value then
+            LocalPlayer.CameraMaxZoomDistance = 999999
+        else
+            LocalPlayer.CameraMaxZoomDistance = 128
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "카메라 흔들림",
+    CurrentValue = false,
+    Flag = "CameraShakeToggle",
+
+    Callback = function(Value)
+        CameraShake = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "랜덤 밝기",
+    CurrentValue = false,
+    Flag = "RandomBrightnessToggle",
+
+    Callback = function(Value)
+        RandomBrightness = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "플래시 모드",
+    CurrentValue = false,
+    Flag = "FlashModeToggle",
+
+    Callback = function(Value)
+        FlashMode = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "무지개 조명",
+    CurrentValue = false,
+    Flag = "RainbowLightingToggle",
+
+    Callback = function(Value)
+        RainbowLighting = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "낙사 방지",
+    CurrentValue = false,
+    Flag = "AntiVoidToggle",
+
+    Callback = function(Value)
+        AntiVoid = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "작은 캐릭터",
+    CurrentValue = false,
+    Flag = "SmallCharacterToggle",
+
+    Callback = function(Value)
+        SmallCharacter = Value
+
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+
+        if hum then
+            hum.BodyHeightScale.Value = Value and 0.5 or 1
+            hum.BodyWidthScale.Value = Value and 0.5 or 1
+            hum.BodyDepthScale.Value = Value and 0.5 or 1
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "거대 캐릭터",
+    CurrentValue = false,
+    Flag = "BigCharacterToggle",
+
+    Callback = function(Value)
+        BigCharacter = Value
+
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+
+        if hum then
+            hum.BodyHeightScale.Value = Value and 2 or 1
+            hum.BodyWidthScale.Value = Value and 2 or 1
+            hum.BodyDepthScale.Value = Value and 2 or 1
+        end
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "빠른 애니메이션",
+    CurrentValue = false,
+    Flag = "FastAnimToggle",
+
+    Callback = function(Value)
+        FastAnim = Value
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "느린 애니메이션",
+    CurrentValue = false,
+    Flag = "SlowAnimToggle",
+
+    Callback = function(Value)
+        SlowAnim = Value
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 루프 처리
+-------------------------------------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+
+    pcall(function()
+
+        if SpinBot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(SpinSpeed), 0)
+        end
+
+        if AutoRotate and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(2), 0)
+        end
+
+        if HeadSpin and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+            LocalPlayer.Character.Head.CFrame *= CFrame.Angles(0, math.rad(15), 0)
+        end
+
+        if CameraShake then
+            workspace.CurrentCamera.CFrame *= CFrame.new(
+                math.random(-1,1)/15,
+                math.random(-1,1)/15,
+                0
+            )
+        end
+
+        if RainbowLighting then
+            Lighting.Ambient = Color3.fromHSV(tick()%5/5,1,1)
+        end
+
+        if RandomBrightness then
+            Lighting.ClockTime = math.random(0,24)
+        end
+
+        if FlashMode then
+            Lighting.Brightness = math.random(1,10)
+        end
+
+        if AntiVoid and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if LocalPlayer.Character.HumanoidRootPart.Position.Y < -25 then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0,50,0)
+            end
+        end
+
+        if RainbowCharacter and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Color = Color3.fromHSV(tick()%5/5,1,1)
+                end
+            end
+        end
+
+        if AutoSit and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit = true
+        end
+
+        if AutoJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+
+        if FakeLag then
+            task.wait(math.random(0.05,0.2))
+        end
+
+        if FastAnim and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            for _, track in pairs(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+                track:AdjustSpeed(2)
+            end
+        end
+
+        if SlowAnim and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            for _, track in pairs(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+                track:AdjustSpeed(0.5)
+            end
+        end
+
+    end)
+
+end)
