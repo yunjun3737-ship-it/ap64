@@ -871,50 +871,93 @@ BackgroundTab:CreateButton({
         end
     end
 })
+-------------------------------------------------------------------------------
+-- 디스코 탭
+-------------------------------------------------------------------------------
+
+local DiscoTab = Window:CreateTab("디스코", 4483362458)
+
+local DiscoEnabled = false
+local DiscoVolume = 3
+local DiscoSound = nil
+
+local OriginalAmbient = Lighting.Ambient
+local OriginalOutdoor = Lighting.OutdoorAmbient
+local OriginalBrightness = Lighting.Brightness
 
 -------------------------------------------------------------------------------
 -- 디스코 모드
 -------------------------------------------------------------------------------
 
-BackgroundTab:CreateToggle({
+DiscoTab:CreateToggle({
     Name = "디스코 모드",
     CurrentValue = false,
-    Flag = "DiscoModeToggle",
+    Flag = "DiscoToggle",
 
     Callback = function(Value)
 
-        DiscoMode = Value
+        DiscoEnabled = Value
 
         if Value then
 
             if not DiscoSound then
                 DiscoSound = Instance.new("Sound")
-                DiscoSound.SoundId = "rbxassetid://1843523203"
-                DiscoSound.Volume = DiscoVolume
+
+                -- 정상 작동하는 음악 ID
+                DiscoSound.SoundId = "rbxassetid://9048375035"
+
                 DiscoSound.Looped = true
+                DiscoSound.Volume = DiscoVolume
                 DiscoSound.Parent = workspace
-                DiscoSound:Play()
+
+                pcall(function()
+                    DiscoSound:Play()
+                end)
             end
 
         else
+
+            Lighting.Ambient = OriginalAmbient
+            Lighting.OutdoorAmbient = OriginalOutdoor
+            Lighting.Brightness = OriginalBrightness
+
+            if LocalPlayer.Character then
+                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Color = Color3.new(1,1,1)
+                        v.Material = Enum.Material.Plastic
+                    end
+                end
+            end
+
+            for _, v in pairs(workspace:GetDescendants()) do
+                pcall(function()
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Plastic
+                    end
+                end)
+            end
 
             if DiscoSound then
                 DiscoSound:Stop()
                 DiscoSound:Destroy()
                 DiscoSound = nil
             end
-
         end
     end
 })
 
-BackgroundTab:CreateSlider({
-    Name = "디스코 음량",
+-------------------------------------------------------------------------------
+-- 음량 조절
+-------------------------------------------------------------------------------
+
+DiscoTab:CreateSlider({
+    Name = "음량",
     Range = {0,10},
     Increment = 1,
     Suffix = "Volume",
     CurrentValue = 3,
-    Flag = "DiscoVolumeSlider",
+    Flag = "DiscoVolume",
 
     Callback = function(Value)
 
@@ -926,6 +969,48 @@ BackgroundTab:CreateSlider({
     end
 })
 
+-------------------------------------------------------------------------------
+-- 루프
+-------------------------------------------------------------------------------
+
+RunService.RenderStepped:Connect(function()
+
+    pcall(function()
+
+        if DiscoEnabled then
+
+            local Rainbow = Color3.fromHSV((tick()%5)/5,1,1)
+
+            Lighting.Ambient = Rainbow
+            Lighting.OutdoorAmbient = Rainbow
+            Lighting.Brightness = 3
+
+            -- 캐릭터 무지개
+            if LocalPlayer.Character then
+                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Color = Rainbow
+                        v.Material = Enum.Material.Neon
+                    end
+                end
+            end
+
+            -- 월드 네온화
+            for _, v in pairs(workspace:GetDescendants()) do
+                pcall(function()
+
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Neon
+                    end
+
+                end)
+            end
+
+        end
+
+    end)
+
+end)
 -------------------------------------------------------------------------------
 -- 무지개 캐릭터
 -------------------------------------------------------------------------------
