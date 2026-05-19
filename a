@@ -1,155 +1,710 @@
--- 중복 실행 방지: 이전에 켜져 있던 UI가 있다면 제거
-if getgenv().RayfieldWindows then
-    for _, win in pairs(getgenv().RayfieldWindows) do
-        win:Destroy()
-    end
-    getgenv().RayfieldWindows = {}
-else
-    getgenv().RayfieldWindows = {}
-end
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "감옥 펌프 오토팜 (Prison Farm)",
-    LoadingTitle = "Alpaca's Script Interface",
-    LoadingSubtitle = "by Alpaca",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil, 
-        FileName = "PrisonFarmConfig"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
-    KeySystem = true,
-    KeySettings = {
-        Title = "알파 허브 입니다",
-        Subtitle = "Key System",
-        Note = "No method of obtaining the key is provided",
-        FileName = "키",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {"알파카"}
-    }
+   Name = "Paca Hub - Mega Edition",
+   LoadingTitle = "Paca Hub Comprehensive Loading...",
+   LoadingSubtitle = "by Alpaca",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = true,
+   KeySettings = {
+      Title = "Paca Hub Key System",
+      Subtitle = "인증 키를 입력하세요",
+      Note = "키: 알파카",
+      FileName = "PacaMegaKey",
+      SaveKey = true,
+      GrabKeyFromUrl = false,
+      Key = {"알파카"}
+   }
 })
 
-table.insert(getgenv().RayfieldWindows, Window)
+-- 탭 생성 (전부 한국어 변경)
+local PlayerTab = Window:CreateTab("기본 플레이어", 4483362458)
+local PhysicsTab = Window:CreateTab("물리 및 움직임", 4483362458)
+local VisualTab = Window:CreateTab("시각 효과 설정", 4483362458)
+local TeleportTab = Window:CreateTab("유저 텔레포트", 4483362458)
+local ServerTab = Window:CreateTab("서버 및 환경", 4483362458)
 
-local FarmTab = Window:CreateTab("오토팜 (Auto Farm)", 4483362458)
-local FarmSection = FarmTab:CreateSection("농장 기능")
+-- 글로벌 변수 및 설정값 초기화
+local _G = getgenv and getgenv() or _G
+_G.WalkSpeed = 16
+_G.JumpPower = 50
+_G.HipHeight = 0
+_G.Gravity = workspace.Gravity
 
--- 전역 변수 설정
-local AutoFarmEnabled = false
-local FarmDelay = 1
+local NoInertia = false
+local FullBright = false
+local SelectedPlayer = ""
+local LoopTP = false
+local CtrlClickTP = false
+local AutoRespawn = false
+local AntiSit = false
+local NoClip = false
 
--- 오토팜 토글
-local AutoFarmToggle = FarmTab:CreateToggle({
-    Name = "자동 고기 파밍 켜기",
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- 라이팅 원본 백업
+local OrigAmbient = Lighting.Ambient
+local OrigOutdoorAmbient = Lighting.OutdoorAmbient
+local OrigBrightness = Lighting.Brightness
+local OrigClockTime = Lighting.ClockTime
+local OrigFogEnd = Lighting.FogEnd
+
+local function GetPlayerNames()
+   local names = {}
+   for _, p in pairs(Players:GetPlayers()) do
+      if p ~= LocalPlayer then table.insert(names, p.Name) end
+   end
+   return names
+end
+
+-------------------------------------------------------------------------------
+-- 1. 플레이어 탭 (텍스트박스 입력 방식으로 고정 수리)
+-------------------------------------------------------------------------------
+PlayerTab:CreateInput({
+   Name = "이동 속도 변경 (숫자 입력)",
+   PlaceholderText = "기본값: 16",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         _G.WalkSpeed = num
+         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = num
+         end
+      end
+   end
+})
+
+PlayerTab:CreateInput({
+   Name = "점프력 변경 (숫자 입력)",
+   PlaceholderText = "기본값: 50",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         _G.JumpPower = num
+         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            hum.UseJumpPower = true
+            hum.JumpPower = num
+         end
+      end
+   end
+})
+
+PlayerTab:CreateInput({
+   Name = "힙 높이 변경 (HipHeight)",
+   PlaceholderText = "기본값: 0 (공중 부양 조절)",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         _G.HipHeight = num
+         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").HipHeight = num
+         end
+      end
+   end
+})
+
+PlayerTab:CreateButton({
+   Name = "캐릭터 강제 리셋 (Reset)",
+   Callback = function()
+      if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+      end
+   end
+})
+
+PlayerTab:CreateToggle({
+   Name = "자동 리스폰 활성화",
+   CurrentValue = false,
+   Flag = "AutoRespawnToggle",
+   Callback = function(Value)
+      AutoRespawn = Value
+   end
+})
+
+-------------------------------------------------------------------------------
+-- 2. 물리 및 움직임 탭
+-------------------------------------------------------------------------------
+PhysicsTab:CreateToggle({
+   Name = "관성 제거 (즉시 제동)",
+   CurrentValue = false,
+   Flag = "NoInertiaToggle",
+   Callback = function(Value)
+      NoInertia = Value
+   end
+})
+
+PhysicsTab:CreateToggle({
+   Name = "의자 앉기 방지 (Anti-Sit)",
+   CurrentValue = false,
+   Flag = "AntiSitToggle",
+   Callback = function(Value)
+      AntiSit = Value
+      if Value and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+         LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Sit = false
+      end
+   end
+})
+
+PhysicsTab:CreateToggle({
+   Name = "벽 뚫기 (NoClip)",
+   CurrentValue = false,
+   Flag = "NoClipToggle",
+   Callback = function(Value)
+      NoClip = Value
+   end
+})
+
+PhysicsTab:CreateInput({
+   Name = "개인 중력 설정 (Gravity)",
+   PlaceholderText = "기본값: 196.2",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         _G.Gravity = num
+         workspace.Gravity = num
+      end
+   end
+})
+
+PhysicsTab:CreateButton({
+   Name = "중력 상태 초기화",
+   Callback = function()
+      workspace.Gravity = 196.2
+      _G.Gravity = 196.2
+   end
+})
+
+-------------------------------------------------------------------------------
+-- 3. 시각 효과 설정 탭
+-------------------------------------------------------------------------------
+VisualTab:CreateToggle({
+   Name = "풀 브라이트 (야간 투시)",
+   CurrentValue = false,
+   Flag = "FullBrightToggle",
+   Callback = function(Value)
+      FullBright = Value
+      if FullBright then
+         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+         Lighting.Brightness = 2
+         Lighting.ClockTime = 14
+      else
+         Lighting.Ambient = OrigAmbient
+         Lighting.OutdoorAmbient = OrigOutdoorAmbient
+         Lighting.Brightness = OrigBrightness
+         Lighting.ClockTime = OrigClockTime
+      end
+   end
+})
+
+VisualTab:CreateToggle({
+   Name = "맵 안개 제거 (Anti-Fog)",
+   CurrentValue = false,
+   Flag = "AntiFogToggle",
+   Callback = function(Value)
+      if Value then
+         Lighting.FogEnd = 999999
+      else
+         Lighting.FogEnd = OrigFogEnd
+      end
+   end
+})
+
+VisualTab:CreateButton({
+   Name = "그림자 제거",
+   Callback = function()
+      Lighting.GlobalShadows = false
+   end
+})
+
+VisualTab:CreateButton({
+   Name = "그림자 복구",
+   Callback = function()
+      Lighting.GlobalShadows = true
+   end
+})
+
+-------------------------------------------------------------------------------
+-- 4. 텔레포트 탭
+-------------------------------------------------------------------------------
+local PlayerDropdown = TeleportTab:CreateDropdown({
+   Name = "대상 플레이어 선택",
+   Options = GetPlayerNames(),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "TargetDropdown",
+   Callback = function(Option)
+      SelectedPlayer = Option[1]
+   end
+})
+
+TeleportTab:CreateButton({
+   Name = "유저 목록 동기화 (새로고침)",
+   Callback = function()
+      PlayerDropdown:Refresh(GetPlayerNames(), true)
+   end
+})
+
+TeleportTab:CreateButton({
+   Name = "선택 유저에게 순간이동",
+   Callback = function()
+      if SelectedPlayer ~= "" and Players:FindFirstChild(SelectedPlayer) then
+         local target = Players:FindFirstChild(SelectedPlayer)
+         if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+         end
+      end
+   end
+})
+
+TeleportTab:CreateToggle({
+   Name = "지속 추적 텔레포트 (Loop TP)",
+   CurrentValue = false,
+   Flag = "LoopTPToggle",
+   Callback = function(Value)
+      LoopTP = Value
+   end
+})
+
+TeleportTab:CreateToggle({
+   Name = "Ctrl + 클릭 위치로 텔레포트",
+   CurrentValue = false,
+   Flag = "CtrlClickToggle",
+   Callback = function(Value)
+      CtrlClickTP = Value
+   end
+})
+
+-------------------------------------------------------------------------------
+-- 5. 서버 및 환경 탭
+-------------------------------------------------------------------------------
+ServerTab:CreateButton({
+   Name = "서버 재접속 (Rejoin)",
+   Callback = function()
+      game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+   end
+})
+
+ServerTab:CreateButton({
+   Name = "가장 오래된 서버로 이동 (Server Hop)",
+   Callback = function()
+      pcall(function()
+         local Http = game:GetService("HttpService")
+         local Api = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+         local List = Http:JSONDecode(game:HttpGet(Api))
+         if List and List.data then
+            for _, s in pairs(List.data) do
+               if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                  game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, s.id, LocalPlayer)
+                  break
+               end
+            end
+         end
+      end)
+   end
+})
+
+-------------------------------------------------------------------------------
+-- [루프 및 물리 상시 구동 프로세서]
+-------------------------------------------------------------------------------
+RunService.Heartbeat:Connect(function()
+   pcall(function()
+      if LocalPlayer.Character then
+         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+         local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+         
+         -- 스피드 및 점프력 강제 고정 (안티 치트 프레임워크 우회 스태킹)
+         if hum then
+            if hum.WalkSpeed ~= _G.WalkSpeed then hum.WalkSpeed = _G.WalkSpeed end
+            if hum.JumpPower ~= _G.JumpPower then hum.UseJumpPower = true; hum.JumpPower = _G.JumpPower end
+            if hum.HipHeight ~= _G.HipHeight then hum.HipHeight = _G.HipHeight end
+            if AntiSit and hum.Sit then hum.Sit = false end
+         end
+         
+         -- 관성 제거 연산
+         if NoInertia and root and hum and hum.MoveDirection.Magnitude == 0 then
+            root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
+         end
+         
+         -- 벽 뚫기 가동
+         if NoClip then
+            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+               if part:IsA("BasePart") then part.CanCollide = false end
+            end
+         end
+      end
+   end)
+end)
+
+-- 루프 텔레포트 프로세스
+task.spawn(function()
+   while task.wait(0.05) do
+      if LoopTP and SelectedPlayer ~= "" and Players:FindFirstChild(SelectedPlayer) then
+         pcall(function()
+            local target = Players:FindFirstChild(SelectedPlayer)
+            if target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+               LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+            end
+         end)
+      end
+   end
+end)
+
+-- 시각 밝기 루프 홀딩
+task.spawn(function()
+   while task.wait(0.5) do
+      if FullBright then
+         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+         Lighting.Brightness = 2
+         Lighting.ClockTime = 14
+      end
+   end
+end)
+
+-- 자동 리스폰 감지
+LocalPlayer.CharacterRemoving:Connect(function()
+   if AutoRespawn then
+      task.wait(0.1)
+      LocalPlayer:LoadCharacter()
+   end
+end)
+
+-- Ctrl + 클릭 텔레포트 기능 구현
+UserInputService.InputBegan:Connect(function(input, processed)
+   if not processed and CtrlClickTP and input.UserInputType == Enum.UserInputType.MouseButton1 and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+      local mouse = LocalPlayer:GetMouse()
+      if mouse.Target and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+         LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+      end
+   end
+end)
+
+-- 자동 동기화 리스너 등록
+Players.PlayerAdded:Connect(function() PlayerDropdown:Refresh(GetPlayerNames(), true) end)
+Players.PlayerRemoving:Connect(function() PlayerDropdown:Refresh(GetPlayerNames(), true) end)
+-------------------------------------------------------------------------------
+-- 6. 어드민 및 특수 기능 탭
+-------------------------------------------------------------------------------
+local AdminTab = Window:CreateTab("어드민 기능", 4483362458)
+
+local Fly = false
+local FlySpeed = 50
+local InfiniteJump = false
+local ESPEnabled = false
+local AntiAFK = false
+local SpectateTarget = ""
+local SavedPosition = nil
+local CurrentSpectate = nil
+
+-------------------------------------------------------------------------------
+-- 플라이 기능
+-------------------------------------------------------------------------------
+local BV
+local BG
+
+local function StartFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not root or not hum then return end
+
+    BG = Instance.new("BodyGyro")
+    BG.P = 9e4
+    BG.Parent = root
+    BG.MaxTorque = Vector3.new(9e9,9e9,9e9)
+    BG.CFrame = root.CFrame
+
+    BV = Instance.new("BodyVelocity")
+    BV.Parent = root
+    BV.MaxForce = Vector3.new(9e9,9e9,9e9)
+    BV.Velocity = Vector3.zero
+
+    hum.PlatformStand = true
+
+    task.spawn(function()
+        while Fly and task.wait() do
+            local cam = workspace.CurrentCamera
+            local moveDir = Vector3.zero
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDir += cam.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDir -= cam.CFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDir -= cam.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDir += cam.CFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDir += Vector3.new(0,1,0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                moveDir -= Vector3.new(0,1,0)
+            end
+
+            BV.Velocity = moveDir * FlySpeed
+            BG.CFrame = cam.CFrame
+        end
+    end)
+end
+
+local function StopFly()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        char:FindFirstChildOfClass("Humanoid").PlatformStand = false
+    end
+
+    if BV then BV:Destroy() end
+    if BG then BG:Destroy() end
+end
+
+AdminTab:CreateToggle({
+    Name = "플라이 (Fly)",
     CurrentValue = false,
-    Flag = "AutoFarmToggle",
+    Flag = "FlyToggle",
     Callback = function(Value)
-        AutoFarmEnabled = Value
-        
-        if AutoFarmEnabled then
-            Rayfield:Notify({
-                Title = "활성화",
-                Content = "오토팜이 시작되었습니다.",
-                Duration = 3,
-                Image = 4483362458
-            })
-            
-            task.spawn(function()
-                local lp = game.Players.LocalPlayer
-                
-                while AutoFarmEnabled do
-                    -- 1단계: 파밍 위치로 이동
-                    if lp and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                        lp.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-60.26, 4.70, -61.24))
-                        task.wait(0.5) -- 순간이동 후 위치 고정 대기
-                    end
+        Fly = Value
 
-                    -- 2단계: 모바일/PC 상관없이 '음식 잡기' 상호작용 강제 실행 (광클 방식)
-                    print("[AutoFarm] 음식 잡기 시도 중...")
-                    local function interactWithFood()
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if v:IsA("ProximityPrompt") and (v.ObjectText == "음식 잡기" or v.ActionText == "음식 잡기") then
-                                fireproximityprompt(v)
-                                return true
-                            end
-                        end
-                        return false
-                    end
-
-                    -- 최대 15초 동안 음식 잡기 시도 (인벤토리가 가득 찰 때까지)
-                    local startTime = tick()
-                    while AutoFarmEnabled and (tick() - startTime) < 15 do
-                        interactWithFood()
-                        task.wait(0.2) -- 0.2초 간격으로 연속 클릭/실행
-                    end
-
-                    -- 3단계: 고기 먹기 위치로 이동
-                    if AutoFarmEnabled and lp and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                        lp.Character.HumanoidRootPart.CFrame = CFrame.new(Vector3.new(-12.36, 4.68, -64.56))
-                        task.wait(0.5)
-                    end
-
-                    -- 4단계: 먹기 상호작용 실행 후, 먹는 시간(7초) 동안 제자리 고정
-                    print("[AutoFarm] 고기 먹는 중...")
-                    local function interactWithEat()
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if v:IsA("ProximityPrompt") and (v.ObjectText == "먹기" or v.ActionText == "먹기") then
-                                fireproximityprompt(v)
-                                return true
-                            end
-                        end
-                        return false
-                    end
-
-                    interactWithEat()
-
-                    -- 고기를 다 먹을 때까지(일어날 때까지) 대기하여 무한 텔레포트 방지
-                    local eatDuration = 7
-                    local eatStartTime = tick()
-                    while AutoFarmEnabled and (tick() - eatStartTime) < eatDuration do
-                        task.wait(1)
-                    end
-
-                    -- 5단계: 설정된 지연 시간(슬라이더) 적용
-                    if AutoFarmEnabled then
-                        task.wait(FarmDelay)
-                    end
-                end
-            end)
+        if Value then
+            StartFly()
         else
-            Rayfield:Notify({
-                Title = "비활성화",
-                Content = "오토팜이 중지되었습니다.",
-                Duration = 3,
-                Image = 4483362458
-            })
+            StopFly()
         end
     end
 })
 
--- 슬라이더 추가
-local FarmSpeedSlider = FarmTab:CreateSlider({
-    Name = "파밍 지연 시간 (초)",
-    Range = {0.1, 5},
-    Increment = 0.1,
-    Suffix = "s",
-    CurrentValue = 1,
-    Flag = "FarmSlider",
-    Callback = function(Value)
-        FarmDelay = Value
+AdminTab:CreateInput({
+    Name = "플라이 속도",
+    PlaceholderText = "기본값: 50",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            FlySpeed = num
+        end
     end
 })
 
-Rayfield:Notify({
-    Title = "성공",
-    Content = "Alpaca의 오토팜 UI가 성공적으로 로드되었습니다!",
-    Duration = 5,
-    Image = 4483362458
+-------------------------------------------------------------------------------
+-- 무한 점프
+-------------------------------------------------------------------------------
+AdminTab:CreateToggle({
+    Name = "무한 점프",
+    CurrentValue = false,
+    Flag = "InfiniteJumpToggle",
+    Callback = function(Value)
+        InfiniteJump = Value
+    end
+})
+
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJump and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-------------------------------------------------------------------------------
+-- ESP 기능
+-------------------------------------------------------------------------------
+local ESPTable = {}
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = game.CoreGui
+
+    ESPTable[player] = highlight
+
+    local function Update()
+        if player.Character then
+            highlight.Adornee = player.Character
+        end
+    end
+
+    Update()
+    player.CharacterAdded:Connect(Update)
+end
+
+local function RemoveESP()
+    for _, v in pairs(ESPTable) do
+        pcall(function()
+            v:Destroy()
+        end)
+    end
+    ESPTable = {}
+end
+
+AdminTab:CreateToggle({
+    Name = "플레이어 ESP",
+    CurrentValue = false,
+    Flag = "ESPToggle",
+    Callback = function(Value)
+        ESPEnabled = Value
+
+        if Value then
+            for _, p in pairs(Players:GetPlayers()) do
+                CreateESP(p)
+            end
+        else
+            RemoveESP()
+        end
+    end
+})
+
+Players.PlayerAdded:Connect(function(p)
+    if ESPEnabled then
+        CreateESP(p)
+    end
+end)
+
+-------------------------------------------------------------------------------
+-- 관전 기능
+-------------------------------------------------------------------------------
+local SpectateDropdown = AdminTab:CreateDropdown({
+    Name = "관전 대상 선택",
+    Options = GetPlayerNames(),
+    CurrentOption = {""},
+    MultipleOptions = false,
+    Flag = "SpectateDropdown",
+    Callback = function(Option)
+        SpectateTarget = Option[1]
+    end
+})
+
+AdminTab:CreateButton({
+    Name = "관전 시작",
+    Callback = function()
+        if Players:FindFirstChild(SpectateTarget) then
+            local target = Players:FindFirstChild(SpectateTarget)
+
+            if target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
+                workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
+                CurrentSpectate = target
+            end
+        end
+    end
+})
+
+AdminTab:CreateButton({
+    Name = "관전 종료",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- FOV 변경
+-------------------------------------------------------------------------------
+AdminTab:CreateInput({
+    Name = "시야각 변경 (FOV)",
+    PlaceholderText = "기본값: 70",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            workspace.CurrentCamera.FieldOfView = num
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 좌표 저장 / 복귀
+-------------------------------------------------------------------------------
+AdminTab:CreateButton({
+    Name = "현재 위치 저장",
+    Callback = function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            SavedPosition = LocalPlayer.Character.HumanoidRootPart.CFrame
+        end
+    end
+})
+
+AdminTab:CreateButton({
+    Name = "저장 위치로 이동",
+    Callback = function()
+        if SavedPosition and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = SavedPosition
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- FPS 부스터
+-------------------------------------------------------------------------------
+AdminTab:CreateButton({
+    Name = "FPS 부스터",
+    Callback = function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            pcall(function()
+                if v:IsA("BasePart") then
+                    v.Material = Enum.Material.Plastic
+                    v.Reflectance = 0
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Enabled = false
+                end
+            end)
+        end
+
+        Lighting.GlobalShadows = false
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end
+})
+
+-------------------------------------------------------------------------------
+-- Anti AFK
+-------------------------------------------------------------------------------
+AdminTab:CreateToggle({
+    Name = "Anti AFK",
+    CurrentValue = false,
+    Flag = "AntiAFKToggle",
+    Callback = function(Value)
+        AntiAFK = Value
+
+        if Value then
+            local vu = game:GetService("VirtualUser")
+
+            LocalPlayer.Idled:Connect(function()
+                if AntiAFK then
+                    vu:CaptureController()
+                    vu:ClickButton2(Vector2.new())
+                end
+            end)
+        end
+    end
+})
+
+-------------------------------------------------------------------------------
+-- 리프레시
+-------------------------------------------------------------------------------
+AdminTab:CreateButton({
+    Name = "플레이어 목록 새로고침",
+    Callback = function()
+        SpectateDropdown:Refresh(GetPlayerNames(), true)
+    end
 })
