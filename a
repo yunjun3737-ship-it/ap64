@@ -710,6 +710,263 @@ AdminTab:CreateButton({
     end
 })
 -------------------------------------------------------------------------------
+-- 추가 기능 탭
+-------------------------------------------------------------------------------
+local ExtraTab = Window:CreateTab("추가 기능", 4483362458)
+
+local FeatureStates = {}
+
+local FeatureList = {
+    "자동 달리기",
+    "자동 점프",
+    "회전 스핀",
+    "고속 스핀",
+    "랜덤 점프",
+    "역중력",
+    "무중력",
+    "달 중력",
+    "낙사 방지",
+    "안티 플링",
+    "안티 래그돌",
+    "공중 걷기",
+    "물 위 걷기",
+    "플랫폼 모드",
+    "캐릭터 투명화",
+    "닉네임 숨기기",
+    "무지개 캐릭터",
+    "무지개 몸체",
+    "무지개 조명",
+    "디스코 모드",
+    "네온 모드",
+    "하늘 번쩍임",
+    "블러 모드",
+    "플래시 모드",
+    "랜덤 밝기",
+    "시간 정지",
+    "그림자 스팸",
+    "중력 스팸",
+    "가짜 렉",
+    "가짜 프리즈",
+    "가짜 잠수",
+    "자동 회전",
+    "자동 앉기",
+    "자동 춤",
+    "자동 카메라 회전",
+    "카메라 흔들림",
+    "자동 줌",
+    "무한 줌",
+    "3인칭 확대",
+    "미니 모드",
+    "작은 캐릭터",
+    "거대 캐릭터",
+    "빠른 애니메이션",
+    "느린 애니메이션",
+    "머리 회전",
+    "궤도 회전",
+    "점프 스핀",
+    "스핀봇",
+    "자동 리셋",
+    "자동 회복"
+}
+
+for _, FeatureName in pairs(FeatureList) do
+    FeatureStates[FeatureName] = false
+
+    ExtraTab:CreateToggle({
+        Name = FeatureName,
+        CurrentValue = false,
+        Flag = FeatureName .. "_Toggle",
+
+        Callback = function(Value)
+            FeatureStates[FeatureName] = Value
+
+            if FeatureName == "자동 달리기" then
+                _G.WalkSpeed = Value and 32 or 16
+            end
+
+            if FeatureName == "자동 점프" and Value then
+                task.spawn(function()
+                    while FeatureStates["자동 점프"] do
+                        task.wait(0.25)
+
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                            LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                end)
+            end
+
+            if FeatureName == "역중력" then
+                workspace.Gravity = Value and -50 or 196.2
+            end
+
+            if FeatureName == "무중력" then
+                workspace.Gravity = Value and 0 or 196.2
+            end
+
+            if FeatureName == "달 중력" then
+                workspace.Gravity = Value and 35 or 196.2
+            end
+
+            if FeatureName == "캐릭터 투명화" then
+                if LocalPlayer.Character then
+                    for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.Transparency = Value and 0.6 or 0
+                        end
+                    end
+                end
+            end
+
+            if FeatureName == "무한 줌" then
+                if Value then
+                    LocalPlayer.CameraMaxZoomDistance = 999999
+                else
+                    LocalPlayer.CameraMaxZoomDistance = 128
+                end
+            end
+
+            if FeatureName == "미니 모드" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid.BodyDepthScale.Value = Value and 0.5 or 1
+                    LocalPlayer.Character.Humanoid.BodyWidthScale.Value = Value and 0.5 or 1
+                    LocalPlayer.Character.Humanoid.BodyHeightScale.Value = Value and 0.5 or 1
+                end
+            end
+
+            if FeatureName == "거대 캐릭터" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                    LocalPlayer.Character.Humanoid.BodyDepthScale.Value = Value and 2 or 1
+                    LocalPlayer.Character.Humanoid.BodyWidthScale.Value = Value and 2 or 1
+                    LocalPlayer.Character.Humanoid.BodyHeightScale.Value = Value and 2 or 1
+                end
+            end
+
+            if FeatureName == "빠른 애니메이션" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                    for _, track in pairs(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+                        track:AdjustSpeed(Value and 2 or 1)
+                    end
+                end
+            end
+
+            if FeatureName == "느린 애니메이션" then
+                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                    for _, track in pairs(LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):GetPlayingAnimationTracks()) do
+                        track:AdjustSpeed(Value and 0.5 or 1)
+                    end
+                end
+            end
+
+            if FeatureName == "네온 모드" and Value then
+                for _, v in pairs(workspace:GetDescendants()) do
+                    pcall(function()
+                        if v:IsA("BasePart") then
+                            v.Material = Enum.Material.Neon
+                        end
+                    end)
+                end
+            end
+
+            if FeatureName == "블러 모드" then
+                if Value then
+                    local blur = Instance.new("BlurEffect")
+                    blur.Name = "PacaBlur"
+                    blur.Size = 20
+                    blur.Parent = Lighting
+                else
+                    if Lighting:FindFirstChild("PacaBlur") then
+                        Lighting.PacaBlur:Destroy()
+                    end
+                end
+            end
+
+            if FeatureName == "플래시 모드" and Value then
+                task.spawn(function()
+                    while FeatureStates["플래시 모드"] do
+                        task.wait(0.1)
+                        Lighting.Brightness = math.random(1,10)
+                    end
+                end)
+            end
+
+            if FeatureName == "랜덤 밝기" and Value then
+                task.spawn(function()
+                    while FeatureStates["랜덤 밝기"] do
+                        task.wait(0.5)
+                        Lighting.ClockTime = math.random(0,24)
+                    end
+                end)
+            end
+
+            if FeatureName == "자동 리셋" and Value then
+                task.spawn(function()
+                    while FeatureStates["자동 리셋"] do
+                        task.wait(10)
+
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                            LocalPlayer.Character:FindFirstChildOfClass("Humanoid").Health = 0
+                        end
+                    end
+                end)
+            end
+        end
+    })
+end
+
+-------------------------------------------------------------------------------
+-- 루프 기능 처리
+-------------------------------------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+
+        if FeatureStates["회전 스핀"] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(5), 0)
+        end
+
+        if FeatureStates["고속 스핀"] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(25), 0)
+        end
+
+        if FeatureStates["머리 회전"] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Head") then
+            LocalPlayer.Character.Head.CFrame *= CFrame.Angles(0, math.rad(15), 0)
+        end
+
+        if FeatureStates["무지개 조명"] then
+            Lighting.Ambient = Color3.fromHSV(tick()%5/5,1,1)
+        end
+
+        if FeatureStates["디스코 모드"] then
+            Lighting.ClockTime = math.random(0,24)
+        end
+
+        if FeatureStates["카메라 흔들림"] then
+            workspace.CurrentCamera.CFrame *= CFrame.new(
+                math.random(-1,1)/10,
+                math.random(-1,1)/10,
+                0
+            )
+        end
+
+        if FeatureStates["자동 회전"] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(2), 0)
+        end
+
+        if FeatureStates["랜덤 점프"] and math.random(1,50) == 1 then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+
+        if FeatureStates["낙사 방지"] and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if LocalPlayer.Character.HumanoidRootPart.Position.Y < -20 then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0,50,0)
+            end
+        end
+
+    end)
+end)
+-------------------------------------------------------------------------------
 -- 카메라 탭
 -------------------------------------------------------------------------------
 local CameraTab = Window:CreateTab("카메라", 4483362458)
@@ -726,10 +983,12 @@ CameraTab:CreateToggle({
 
         if Value then
             LocalPlayer.CameraMode = Enum.CameraMode.Classic
+
             LocalPlayer.CameraMinZoomDistance = ThirdPersonDistance
             LocalPlayer.CameraMaxZoomDistance = 999999
         else
             LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+
             LocalPlayer.CameraMinZoomDistance = 0
             LocalPlayer.CameraMaxZoomDistance = 0
         end
@@ -750,526 +1009,5 @@ CameraTab:CreateInput({
                 LocalPlayer.CameraMinZoomDistance = num
             end
         end
-    end
-})
-
--------------------------------------------------------------------------------
--- 추가 기능 탭
--------------------------------------------------------------------------------
-local ExtraTab = Window:CreateTab("추가 기능", 4483362458)
-
-local SpinEnabled = false
-local SpinSpeed = 5
-local AntiVoid = false
-local AutoJump = false
-local RainbowCharacter = false
-local InvisibleCharacter = false
-local FreezeCharacter = false
-local AntiFling = false
-local AutoRotate = false
-local TinyCharacter = false
-local GiantCharacter = false
-local WaterWalk = false
-local WalkOnAir = false
-local DiscoMode = false
-local HeadSpin = false
-local RainbowLighting = false
-local OrbitSpin = false
-local AutoSit = false
-local AutoDance = false
-local CameraShake = false
-local FlashMode = false
-local BlurMode = false
-local LagVisual = false
-local FakeAFK = false
-local AntiRagdoll = false
-local ReverseGravity = false
-local RandomJump = false
-local NeonMode = false
-local InvisibleName = false
-local ShadowSpam = false
-local GravitySpam = false
-local RandomBrightness = false
-local ClockFreeze = false
-local AutoRotateCamera = false
-local SpinBot = false
-local FastSpin = false
-local JumpSpin = false
-local PlatformMode = false
-local FakeLag = false
-local AutoHeal = false
-local AutoReset = false
-local FakeFreeze = false
-local MoonGravity = false
-local ZeroGravity = false
-local FastAnimation = false
-local SlowAnimation = false
-local RainbowBody = false
-local AutoZoom = false
-local AutoFlash = false
-local SkyFlash = false
-local AntiFall = false
-local InfiniteZoom = false
-local MiniMode = false
-
-ExtraTab:CreateToggle({
-    Name = "회전 스핀",
-    CurrentValue = false,
-    Flag = "SpinToggle",
-    Callback = function(Value)
-        SpinEnabled = Value
-    end
-})
-
-ExtraTab:CreateInput({
-    Name = "스핀 속도",
-    PlaceholderText = "기본값: 5",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        local num = tonumber(Text)
-
-        if num then
-            SpinSpeed = num
-        end
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "낙사 방지",
-    CurrentValue = false,
-    Flag = "AntiVoidToggle",
-    Callback = function(Value)
-        AntiVoid = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 점프",
-    CurrentValue = false,
-    Flag = "AutoJumpToggle",
-    Callback = function(Value)
-        AutoJump = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "무지개 캐릭터",
-    CurrentValue = false,
-    Flag = "RainbowCharacterToggle",
-    Callback = function(Value)
-        RainbowCharacter = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "캐릭터 투명화",
-    CurrentValue = false,
-    Flag = "InvisibleCharacterToggle",
-    Callback = function(Value)
-        InvisibleCharacter = Value
-
-        if LocalPlayer.Character then
-            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.Transparency = Value and 0.6 or 0
-                end
-            end
-        end
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "캐릭터 고정",
-    CurrentValue = false,
-    Flag = "FreezeCharacterToggle",
-    Callback = function(Value)
-        FreezeCharacter = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "안티 플링",
-    CurrentValue = false,
-    Flag = "AntiFlingToggle",
-    Callback = function(Value)
-        AntiFling = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 회전",
-    CurrentValue = false,
-    Flag = "AutoRotateToggle",
-    Callback = function(Value)
-        AutoRotate = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "작은 캐릭터",
-    CurrentValue = false,
-    Flag = "TinyCharacterToggle",
-    Callback = function(Value)
-        TinyCharacter = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "거대 캐릭터",
-    CurrentValue = false,
-    Flag = "GiantCharacterToggle",
-    Callback = function(Value)
-        GiantCharacter = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "물 위 걷기",
-    CurrentValue = false,
-    Flag = "WaterWalkToggle",
-    Callback = function(Value)
-        WaterWalk = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "공중 걷기",
-    CurrentValue = false,
-    Flag = "WalkOnAirToggle",
-    Callback = function(Value)
-        WalkOnAir = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "디스코 모드",
-    CurrentValue = false,
-    Flag = "DiscoModeToggle",
-    Callback = function(Value)
-        DiscoMode = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "머리 회전",
-    CurrentValue = false,
-    Flag = "HeadSpinToggle",
-    Callback = function(Value)
-        HeadSpin = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "무지개 조명",
-    CurrentValue = false,
-    Flag = "RainbowLightingToggle",
-    Callback = function(Value)
-        RainbowLighting = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "궤도 회전",
-    CurrentValue = false,
-    Flag = "OrbitSpinToggle",
-    Callback = function(Value)
-        OrbitSpin = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 앉기",
-    CurrentValue = false,
-    Flag = "AutoSitToggle",
-    Callback = function(Value)
-        AutoSit = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 춤",
-    CurrentValue = false,
-    Flag = "AutoDanceToggle",
-    Callback = function(Value)
-        AutoDance = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "카메라 흔들림",
-    CurrentValue = false,
-    Flag = "CameraShakeToggle",
-    Callback = function(Value)
-        CameraShake = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "플래시 모드",
-    CurrentValue = false,
-    Flag = "FlashModeToggle",
-    Callback = function(Value)
-        FlashMode = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "블러 모드",
-    CurrentValue = false,
-    Flag = "BlurModeToggle",
-    Callback = function(Value)
-        BlurMode = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "가짜 렉",
-    CurrentValue = false,
-    Flag = "LagVisualToggle",
-    Callback = function(Value)
-        LagVisual = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "가짜 잠수",
-    CurrentValue = false,
-    Flag = "FakeAFKToggle",
-    Callback = function(Value)
-        FakeAFK = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "안티 래그돌",
-    CurrentValue = false,
-    Flag = "AntiRagdollToggle",
-    Callback = function(Value)
-        AntiRagdoll = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "역중력",
-    CurrentValue = false,
-    Flag = "ReverseGravityToggle",
-    Callback = function(Value)
-        ReverseGravity = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "랜덤 점프",
-    CurrentValue = false,
-    Flag = "RandomJumpToggle",
-    Callback = function(Value)
-        RandomJump = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "네온 모드",
-    CurrentValue = false,
-    Flag = "NeonModeToggle",
-    Callback = function(Value)
-        NeonMode = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "닉네임 숨기기",
-    CurrentValue = false,
-    Flag = "InvisibleNameToggle",
-    Callback = function(Value)
-        InvisibleName = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "그림자 스팸",
-    CurrentValue = false,
-    Flag = "ShadowSpamToggle",
-    Callback = function(Value)
-        ShadowSpam = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "중력 스팸",
-    CurrentValue = false,
-    Flag = "GravitySpamToggle",
-    Callback = function(Value)
-        GravitySpam = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "랜덤 밝기",
-    CurrentValue = false,
-    Flag = "RandomBrightnessToggle",
-    Callback = function(Value)
-        RandomBrightness = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "시간 정지",
-    CurrentValue = false,
-    Flag = "ClockFreezeToggle",
-    Callback = function(Value)
-        ClockFreeze = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 카메라 회전",
-    CurrentValue = false,
-    Flag = "AutoRotateCameraToggle",
-    Callback = function(Value)
-        AutoRotateCamera = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "스핀봇",
-    CurrentValue = false,
-    Flag = "SpinBotToggle",
-    Callback = function(Value)
-        SpinBot = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "고속 스핀",
-    CurrentValue = false,
-    Flag = "FastSpinToggle",
-    Callback = function(Value)
-        FastSpin = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "점프 스핀",
-    CurrentValue = false,
-    Flag = "JumpSpinToggle",
-    Callback = function(Value)
-        JumpSpin = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "플랫폼 모드",
-    CurrentValue = false,
-    Flag = "PlatformModeToggle",
-    Callback = function(Value)
-        PlatformMode = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "가짜 프리즈",
-    CurrentValue = false,
-    Flag = "FakeFreezeToggle",
-    Callback = function(Value)
-        FakeFreeze = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "달 중력",
-    CurrentValue = false,
-    Flag = "MoonGravityToggle",
-    Callback = function(Value)
-        MoonGravity = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "무중력",
-    CurrentValue = false,
-    Flag = "ZeroGravityToggle",
-    Callback = function(Value)
-        ZeroGravity = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "빠른 애니메이션",
-    CurrentValue = false,
-    Flag = "FastAnimationToggle",
-    Callback = function(Value)
-        FastAnimation = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "느린 애니메이션",
-    CurrentValue = false,
-    Flag = "SlowAnimationToggle",
-    Callback = function(Value)
-        SlowAnimation = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "무지개 몸체",
-    CurrentValue = false,
-    Flag = "RainbowBodyToggle",
-    Callback = function(Value)
-        RainbowBody = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 줌",
-    CurrentValue = false,
-    Flag = "AutoZoomToggle",
-    Callback = function(Value)
-        AutoZoom = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "자동 플래시",
-    CurrentValue = false,
-    Flag = "AutoFlashToggle",
-    Callback = function(Value)
-        AutoFlash = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "하늘 번쩍임",
-    CurrentValue = false,
-    Flag = "SkyFlashToggle",
-    Callback = function(Value)
-        SkyFlash = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "낙하 방지",
-    CurrentValue = false,
-    Flag = "AntiFallToggle",
-    Callback = function(Value)
-        AntiFall = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "무한 줌",
-    CurrentValue = false,
-    Flag = "InfiniteZoomToggle",
-    Callback = function(Value)
-        InfiniteZoom = Value
-    end
-})
-
-ExtraTab:CreateToggle({
-    Name = "미니 모드",
-    CurrentValue = false,
-    Flag = "MiniModeToggle",
-    Callback = function(Value)
-        MiniMode = Value
     end
 })
