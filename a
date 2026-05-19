@@ -904,7 +904,7 @@ DiscoTab:CreateToggle({
                 DiscoSound = Instance.new("Sound")
 
                 -- 정상 작동하는 음악 ID
-                DiscoSound.SoundId = "rbxassetid://142376088"
+                DiscoSound.SoundId = "rbxassetid://"
 
                 DiscoSound.Looped = true
                 DiscoSound.Volume = DiscoVolume
@@ -1026,13 +1026,178 @@ BackgroundTab:CreateToggle({
 
         if not Value and LocalPlayer.Character then
             for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.Color = Color3.new(1,1,1)
+-------------------------------------------------------------------------------
+-- 디스코 배경 탭
+-------------------------------------------------------------------------------
+
+local DiscoTab = Window:CreateTab("디스코 배경", 4483364458)
+
+local DiscoEnabled = false
+local DiscoVolume = 1
+local DiscoSound = nil
+
+local OriginalLighting = {
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    Brightness = Lighting.Brightness,
+    FogColor = Lighting.FogColor,
+    FogEnd = Lighting.FogEnd,
+    ClockTime = Lighting.ClockTime
+}
+
+-------------------------------------------------------------------------------
+-- 디스코 ON/OFF
+-------------------------------------------------------------------------------
+
+DiscoTab:CreateToggle({
+    Name = "디스코 모드",
+    CurrentValue = false,
+    Flag = "DiscoMode",
+
+    Callback = function(Value)
+
+        DiscoEnabled = Value
+
+        if Value then
+
+            if not DiscoSound then
+
+                DiscoSound = Instance.new("Sound")
+                DiscoSound.SoundId = "rbxassetid://142376088"
+                DiscoSound.Volume = DiscoVolume
+                DiscoSound.Looped = true
+                DiscoSound.Parent = workspace
+
+                pcall(function()
+                    DiscoSound:Play()
+                end)
+
+            end
+
+        else
+
+            Lighting.Ambient = OriginalLighting.Ambient
+            Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+            Lighting.Brightness = OriginalLighting.Brightness
+            Lighting.FogColor = OriginalLighting.FogColor
+            Lighting.FogEnd = OriginalLighting.FogEnd
+            Lighting.ClockTime = OriginalLighting.ClockTime
+
+            if DiscoSound then
+                DiscoSound:Stop()
+                DiscoSound:Destroy()
+                DiscoSound = nil
+            end
+
+            
+            if LocalPlayer.Character then
+                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Plastic
+                        v.Color = Color3.new(1,1,1)
+                    end
                 end
             end
+
+            
+            for _, v in pairs(workspace:GetDescendants()) do
+                pcall(function()
+
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.Plastic
+                    end
+
+                end)
+            end
+
         end
     end
 })
+
+
+DiscoTab:CreateSlider({
+    Name = "음량",
+    Range = {0,20},
+    Increment = 1,
+    Suffix = "Volume",
+    CurrentValue = 1,
+    Flag = "DiscoVolume",
+
+    Callback = function(Value)
+
+        DiscoVolume = Value
+
+        if DiscoSound then
+            DiscoSound.Volume = Value
+        end
+    end
+})
+
+
+RunService.RenderStepped:Connect(function()
+
+    pcall(function()
+
+        if DiscoEnabled then
+
+            local Rainbow = Color3.fromHSV((tick()%5)/5,1,1)
+
+            
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+
+            
+            Lighting.Ambient = Rainbow
+            Lighting.OutdoorAmbient = Rainbow
+
+            
+            Lighting.FogColor = Rainbow
+            Lighting.FogEnd = 120
+
+            
+            if LocalPlayer.Character then
+
+                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+
+                    if v:IsA("BasePart") then
+                        v.Color = Rainbow
+                        v.Material = Enum.Material.Neon
+                    end
+
+                end
+
+            end
+
+            
+            ----------------------------------------------------------------------------
+
+            for _, v in pairs(workspace:GetDescendants()) do
+
+                pcall(function()
+
+                    if v:IsA("BasePart")
+                    and not v:IsDescendantOf(LocalPlayer.Character) then
+
+                        v.Material = Enum.Material.Neon
+
+                        
+                        v.Color = Color3.fromHSV(
+                            ((tick()+v.Position.X+v.Position.Z)%5)/5,
+                            1,
+                            1
+                        )
+
+                    end
+
+                end)
+
+            end
+
+        end
+
+    end)
+
+end)
 
 -------------------------------------------------------------------------------
 -- 추가 기능
